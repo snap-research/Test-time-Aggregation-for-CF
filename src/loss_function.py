@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from enum import Enum
 from abc import ABC, abstractmethod
 from typing import Optional 
-
+from src.data import TripletModelOutput
 class BaseLossFunction(ABC):
 
     @abstractmethod
@@ -19,22 +19,23 @@ class BPRLoss(BaseLossFunction):
     """BPR loss proposed in https://arxiv.org/ftp/arxiv/papers/1205/1205.2618.pdf"""
 
     def get_loss(self, 
-                 user_embedding: torch.Tensor,
-                 positive_item_embedding: torch.Tensor,
-                 negative_item_embedding: torch.Tensor,
+                 model_output: TripletModelOutput,
                  ) -> torch.Tensor:
         """ Get the numerical value of the BPR loss function,
 
         Parameters
         ----------
-        user_embedding: torch.Tensor:
-            user embedding matrix (batch_size x embedding_dim)
-        positive_item_embedding: torch.Tensor,
-            positive item embedding matrix (batch_size x embedding_dim)
-        negative_item_embedding: 
-            negative item embedding matrix (batch_size x embedding_dim)
+        model_output: TripletModelOutput
+            model_output.user_embedding: torch.Tensor:
+                user embedding matrix (batch_size x embedding_dim)
+            model_output.positive_item_embedding: torch.Tensor,
+                positive item embedding matrix (batch_size x embedding_dim)
+            model_output.negative_item_embedding: 
+                negative item embedding matrix (batch_size x embedding_dim)
         """
-
+        user_embedding, positive_item_embedding, negative_item_embedding = \
+            model_output.user_embedding, model_output.positive_item_embedding, model_output.negative_item_embedding
+        
         positive_logits = torch.mm(user_embedding, positive_item_embedding.t())
         negative_logits = torch.mm(user_embedding, negative_item_embedding.t())
 
@@ -54,27 +55,28 @@ class DirectAULoss(BaseLossFunction):
         self.gamma = gamma
 
     def get_loss(self, 
-                 user_embedding: torch.Tensor,
-                 positive_item_embedding: torch.Tensor,
-                 negative_item_embedding: torch.Tensor = None,
+                 model_output: TripletModelOutput,
                  ) -> torch.Tensor:
         """ Get the numerical value of the BPR loss function,
             Implementation based on: https://github.com/THUwangcy/DirectAU
 
         Parameters
         ----------
-        user_embedding: torch.Tensor:
-            user embedding matrix (batch_size x embedding_dim)
-        positive_item_embedding: torch.Tensor,
-            positive item embedding matrix (batch_size x embedding_dim)
-        negative_item_embedding: 
-            negative item embedding matrix (batch_size x embedding_dim)
+        model_output: TripletModelOutput
+            model_output.user_embedding: torch.Tensor:
+                user embedding matrix (batch_size x embedding_dim)
+            model_output.positive_item_embedding: torch.Tensor,
+                positive item embedding matrix (batch_size x embedding_dim)
+            model_output.negative_item_embedding: 
+                negative item embedding matrix (batch_size x embedding_dim)
         """
-        
+        user_embedding, positive_item_embedding, negative_item_embedding = \
+            model_output.user_embedding, model_output.positive_item_embedding, model_output.negative_item_embedding
         assert negative_item_embedding == None, "no negative sample required"
 
         align = self.alignment(user_embedding, positive_item_embedding)
-        uniform = (self.uniformity(user_embedding) + self.uniformity(positive_item_embedding)) / 2
+        uniform = (self.uniformity(user_embedding) + \
+                   self.uniformity(positive_item_embedding)) / 2
         return align + self.gamma * uniform
     
     @staticmethod

@@ -1,0 +1,2 @@
+DEFAULT_NODE_FEATURE_FIELD = "features"
+DEFAULT_NODE_INDICES_FIELD = 'node_indices'
