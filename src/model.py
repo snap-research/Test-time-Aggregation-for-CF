@@ -7,7 +7,7 @@ from src.constants import DEFAULT_NODE_FEATURE_FIELD, DEFAULT_NODE_INDICES_FIELD
 from src.loss_function import LossFunction
 from dgl import function as fn
 from data import TripletModelOutput
-from typing import Tuple, override
+from typing import Tuple, override, Optional, Union
 
 class MessagePassingLayer(torch.nn.Module):
 
@@ -144,10 +144,12 @@ class MatrixFactorization(BaseMatrixFactorization):
                          loss_function=loss_function)
 
     def forward(self, 
-                user_ids: torch.Tensor,
-                positive_item_ids: torch.Tensor,
-                negative_item_ids: torch.Tensor = None,
-                ) -> Tuple[TripletModelOutput, torch.Tensor]:
+                graph: dgl.DGLGraph,
+                user_ids: Optional[torch.Tensor] = None,
+                positive_item_ids: Optional[torch.Tensor] = None,
+                negative_item_ids: Optional[torch.Tensor] = None,
+                is_training = False,
+                ) -> Union[TripletModelOutput, Tuple[TripletModelOutput, torch.Tensor]]:
         
         user_embedding = self.get_user_embedding(user_ids)
         positive_item_embedding = self.get_item_embedding(positive_item_ids)
@@ -161,11 +163,28 @@ class MatrixFactorization(BaseMatrixFactorization):
                                            positive_item_embedding = positive_item_embedding, 
                                            negative_item_embedding= negative_item_embedding)
                                           
-        return model_output, self.loss_function.get_loss(model_output)
+        if is_training:                                          
+            return model_output, self.loss_function.get_loss(model_output)
+        else:
+            return model_output
     
 
 class LightGCN(BaseMatrixFactorization):
+    """ LightGCN Model
 
+    Parameters
+    ----------
+    number_of_users: int
+        number of users in the dataset
+    number_of_items: int
+        number of items in the dataset
+    embedding_dim: int
+        embedding dimension
+    num_layers: int
+        number of message passing layers in the model
+    loss_function: BaseLossFunction
+        loss function to be used in the model, default to BPR
+    """
     def __init__(self, 
                  number_of_users: int, 
                  number_of_items: int, 
@@ -185,21 +204,25 @@ class LightGCN(BaseMatrixFactorization):
 
     def forward(self, 
                 graph: dgl.DGLGraph,
-                user_indices: torch.Tensor,
-                positive_item_indices: torch.Tensor,
-                negative_item_indices: torch.Tensor = None,
-                ) -> Tuple[TripletModelOutput, torch.Tensor]:
+                user_indices: Optional[torch.Tensor] = None,
+                positive_item_indices: Optional[torch.Tensor] = None,
+                negative_item_indices: Optional[torch.Tensor] = None,
+                is_training = False,
+                ) -> Union[TripletModelOutput, Tuple[TripletModelOutput, torch.Tensor]]:
         
         total_embedding = self.message_passing(graph=graph)
-        user_embedding = total_embedding[user_indices]
-        positive_item_embedding = total_embedding[positive_item_indices]
+        user_embedding = total_embedding[user_indices] if user_indices else None
+        positive_item_embedding = total_embedding[positive_item_indices] if positive_item_indices else None
         negative_item_embedding = total_embedding[negative_item_indices] if negative_item_indices else None
 
         model_output = TripletModelOutput(user_embedding = user_embedding, 
                                            positive_item_embedding = positive_item_embedding, 
                                            negative_item_embedding= negative_item_embedding)
-                                          
-        return model_output, self.loss_function.get_loss(model_output)
+
+        if is_training:                                          
+            return model_output, self.loss_function.get_loss(model_output)
+        else:
+            return model_output
 
     
     def message_passing(self, 
@@ -220,7 +243,23 @@ class LightGCN(BaseMatrixFactorization):
     
 
 class TAGCF(LightGCN):
-
+    """ TAG-CF Model
+    
+    Parameters
+    ----------
+    number_of_users: int
+        number of users in the dataset
+    number_of_items: int
+        number of items in the dataset
+    embedding_dim: int
+        embedding dimension
+    embedding_table_weight: torch.Tensor
+        pre-trained embedding table weight
+    m: float
+        the in-degree normalization factor for the message passing layer
+    n: float
+        the out-degree normalization factor for the message passing layer
+    """
     def __init__(self, 
                  number_of_users: int, 
                  number_of_items: int, 
@@ -245,10 +284,10 @@ class TAGCF(LightGCN):
     @torch.no_grad()
     def forward(self, 
                 graph: dgl.DGLGraph,
-                user_indices: torch.Tensor,
-                positive_item_indices: torch.Tensor,
-                negative_item_indices: torch.Tensor = None,
-                ) -> Tuple[TripletModelOutput, torch.Tensor]:
+                user_indices: Optional[torch.Tensor] = None,
+                positive_item_indices: Optional[torch.Tensor] = None,
+                negative_item_indices: Optional[torch.Tensor] = None,
+                ) -> TripletModelOutput:
         
         total_embedding = self.message_passing(graph=graph)
         user_embedding = total_embedding[user_indices]
@@ -257,6 +296,6 @@ class TAGCF(LightGCN):
 
         model_output = TripletModelOutput(user_embedding = user_embedding, 
                                            positive_item_embedding = positive_item_embedding, 
-                                           negative_item_embedding= negative_item_embedding)
+                                           negative_item_embedding = negative_item_embedding)
                                           
         return model_output

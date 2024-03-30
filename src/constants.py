@@ -1,2 +1,3 @@
 DEFAULT_NODE_FEATURE_FIELD = "features"
-DEFAULT_NODE_INDICES_FIELD = 'node_indices'
+DEFAULT_NODE_INDICES_FIELD = "node_indices"
+ML_1M_PATH = "dataset/ml-1m/ratings.dat"
