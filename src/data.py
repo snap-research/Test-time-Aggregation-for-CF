@@ -39,12 +39,12 @@ class CFDataset(Dataset):
                     idx: int
                     ) -> torch.Tensor:
         
-        return torch.cat([self.src[idx],  self.dst[idx]])
+        return torch.tensor([self.src[idx],  self.dst[idx]])
     
 def get_dataloader(graph: dgl.DGLGraph,
                    batch_size: int,
                    shuffle: bool = True,
-                   num_workers: int = 0,
+                   num_workers: int = 1,
                    ) -> DataLoader:
     
     dataset = CFDataset(graph)

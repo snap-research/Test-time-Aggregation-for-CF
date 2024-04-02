@@ -1,10 +1,11 @@
-batch_size: !!int 1024
+batch_size: !!int 512
 embedding_dim: !!int 64
 n_layers: !!int 2
 total_epochs: !!int 300
 lr: !!float 5e-4
 weight_decay: !!float 1e-5
-num_workers: !!int 3
+num_workers: !!int 1
+# device_id: !!str cuda:0
 eval_steps: !!int 10
 early_stopping_patience: !!int 3
 should_early_stop: !!bool true
