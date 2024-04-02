@@ -6,8 +6,9 @@ from dgl.utils import expand_as_pair
 from src.constants import DEFAULT_NODE_FEATURE_FIELD, DEFAULT_NODE_INDICES_FIELD
 from src.loss_function import LossFunction
 from dgl import function as fn
-from data import TripletModelOutput
-from typing import Tuple, override, Optional, Union
+from src.data import TripletModelOutput
+from typing import Tuple, Optional, Union
+from enum import Enum
 
 class MessagePassingLayer(torch.nn.Module):
 
@@ -136,6 +137,7 @@ class MatrixFactorization(BaseMatrixFactorization):
                  number_of_items: int,
                  embedding_dim: int,
                  loss_function: BaseLossFunction, 
+                 **kwargs,
                  ) -> None:
     
         super().__init__(number_of_users=number_of_users,
@@ -192,6 +194,7 @@ class LightGCN(BaseMatrixFactorization):
                  num_layers: int,
                  loss_function: BaseLossFunction = \
                     LossFunction['BPR'].value(),
+                 **kwargs,
                 ) -> None:
         
         super().__init__(number_of_users = number_of_users, 
@@ -280,7 +283,6 @@ class TAGCF(LightGCN):
         self.message_passing_layer.m = m
         self.message_passing_layer.n = n
 
-    @override
     @torch.no_grad()
     def forward(self, 
                 graph: dgl.DGLGraph,
@@ -299,3 +301,8 @@ class TAGCF(LightGCN):
                                            negative_item_embedding = negative_item_embedding)
                                           
         return model_output
+
+class ModelClass(Enum):
+    MF = MatrixFactorization
+    LGCN = LightGCN
+    TAGC = TAGCF
