@@ -7,6 +7,7 @@ from src.constants import ML_1M_PATH, DEFAULT_NODE_INDICES_FIELD
 import pandas as pd 
 from abc import ABC, abstractmethod
 from enum import Enum
+import random 
 
 @dataclass
 class TripletModelOutput:
@@ -27,10 +28,18 @@ class CFDataset(Dataset):
 
     def __init__(self,
                  graph: dgl.DGLGraph,
+                 num_users: int,
+                 num_items: int, 
+                 negative_sampling_num: bool = True,
                  ) -> None:
         super().__init__()
 
         self.src, self.dst = graph.edges()
+        self.graph = graph 
+        self.negative_sampling_num = negative_sampling_num
+        self.num_users = num_users
+        self.num_items = num_items
+
 
     def __len__(self) -> int:
         return len(self.src)
@@ -39,15 +48,26 @@ class CFDataset(Dataset):
                     idx: int
                     ) -> torch.Tensor:
         
-        return torch.tensor([self.src[idx],  self.dst[idx]])
+        if not self.negative_sampling_num:
+             return torch.tensor([self.src[idx],  self.dst[idx]])
+        return torch.tensor([self.src[idx],  
+                             self.dst[idx],
+                             random.randint(self.num_users, self.num_users+self.num_items), 
+                             ])
     
 def get_dataloader(graph: dgl.DGLGraph,
                    batch_size: int,
+                   num_users: int,
+                   num_items: int, 
                    shuffle: bool = True,
                    num_workers: int = 1,
                    ) -> DataLoader:
     
-    dataset = CFDataset(graph)
+    dataset = CFDataset(graph = graph,
+                        num_users=num_users,
+                        num_items=num_items,
+                        )
+    
     dataloader = DataLoader(dataset, 
                             batch_size=batch_size, 
                             shuffle=shuffle, 

@@ -39,7 +39,7 @@ class BPRLoss(BaseLossFunction):
         positive_logits = torch.mm(user_embedding, positive_item_embedding.t())
         negative_logits = torch.mm(user_embedding, negative_item_embedding.t())
 
-        return - torch.log(torch.sigmoid(positive_logits - negative_logits)).sum()
+        return - torch.log(torch.sigmoid(positive_logits - negative_logits)).mean()
 
 class DirectAULoss(BaseLossFunction):
     """DirectAU loss proposed in https://arxiv.org/abs/2206.12811
@@ -72,7 +72,6 @@ class DirectAULoss(BaseLossFunction):
         """
         user_embedding, positive_item_embedding, negative_item_embedding = \
             model_output.user_embedding, model_output.positive_item_embedding, model_output.negative_item_embedding
-        assert negative_item_embedding == None, "no negative sample required"
 
         align = self.alignment(user_embedding, positive_item_embedding)
         uniform = (self.uniformity(user_embedding) + \

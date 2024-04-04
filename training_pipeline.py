@@ -46,19 +46,28 @@ class MFPipeline:
 
         return get_dataloader(graph = dataset,
                               batch_size = self.config["batch_size"],
+                              num_users = self.dataset.n_user,
+                              num_items = self.dataset.n_item,
                               num_workers = self.config['num_workers'],
                               shuffle = True,
                               )
     
+    # def handle_iteration()
     def train(self):
         train_dataloader = self.get_dataloader(
             dataset=self.train_dataset,
             )
-        self.train_dataset = pre_process_graph(self.train_dataset)
-        self.train_dataset = self.train_dataset.to(self.device)
+        train_dataset = pre_process_graph(self.train_dataset)
+        train_dataset = self.train_dataset.to(self.device)
 
-        for epoch in self.config['total_epochs']:
+        for epoch in range(self.config['total_epochs']):
             for batch in train_dataloader:
-                model_output, loss = self.model(graph=self.train_dataset,
+                batch = batch.to(self.device)
+                model_output, loss = self.model(graph = train_dataset,
+                                                user_ids = batch[:, 0],
+                                                positive_item_ids = batch[:, 1],
+                                                negative_item_ids = batch[:, 2],
+                                                is_training = True,
                                                 )
-        return next(iter(train_dataloader))
+                
+                return model_output, loss #next(iter(train_dataloader))
