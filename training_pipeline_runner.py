@@ -13,5 +13,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     pipeline = MFPipeline(yaml_path=args.yaml_path)
-    model_output, loss = pipeline.train()
-    breakpoint()
+    pipeline.train()

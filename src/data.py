@@ -52,7 +52,8 @@ class CFDataset(Dataset):
              return torch.tensor([self.src[idx],  self.dst[idx]])
         return torch.tensor([self.src[idx],  
                              self.dst[idx],
-                             random.randint(self.num_users, self.num_users+self.num_items), 
+                             random.randint(self.num_users, \
+                                            self.num_users+self.num_items-1), 
                              ])
     
 def get_dataloader(graph: dgl.DGLGraph,

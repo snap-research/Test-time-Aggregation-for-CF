@@ -4,6 +4,12 @@ from src.loss_function import LossFunction
 from src.data import DatasetClass, get_dataloader
 import dgl
 from src.training_utils import EarlyStopper
+import torch
+from tqdm import tqdm 
+import numpy as np
+from src.eval_metrics import MetricClass
+from typing import Dict
+
 
 class MFPipeline:
 
@@ -22,10 +28,20 @@ class MFPipeline:
             loss_function = LossFunction[self.config['loss_function']].value(),
             num_layers = self.config['n_layers'],
         )
+
+        self.optimizer = torch.optim.Adam(lr=self.config['lr'],
+                                          weight_decay=self.config['weight_decay'],
+                                          params=self.model.parameters(),
+        )
+
         self.early_stopper = EarlyStopper(
             early_stopping_patience=self.config['early_stopping_patience']
             )
         
+        self.eval_metrics = [MetricClass[metric].value(top_k=k)  
+                             for metric in self.config['metrics'] 
+                                for k in self.config['top_k'] 
+                                ]
 
     def load_config(self,
                     yaml_path: str
@@ -52,7 +68,46 @@ class MFPipeline:
                               shuffle = True,
                               )
     
-    # def handle_iteration()
+    def handle_iteration(self, 
+                         loss: torch.Tensor,
+                         ) -> None:
+        
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+
+
+    @ torch.no_grad()
+    def eval(self, 
+             train_graph: dgl.DGLGraph,
+             for_testing: bool = False,
+             ) -> Dict[str, float]:
+        
+        # acquiring all embeddings for users and items 
+        all_embeddings = self.model.get_all_embbedings(graph=train_graph)
+        user_embeddings = all_embeddings[:self.dataset.n_user]
+        item_embeddings = all_embeddings[self.dataset.n_user:]
+
+        # masking positive interactions observed during the training
+        logits = torch.mm(user_embeddings, item_embeddings.t())
+        users, items = self.train_dataset.edges()
+        logits[users, items] = -np.inf
+        labels = torch.zeros_like(logits)
+        if for_testing:
+            target_users, target_items = self.test_dataset.edges()
+        else:
+            target_users, target_items = self.valid_dataset.edges()
+
+        labels[target_users, target_items] = 1
+        
+        results = {}
+        for metric in self.eval_metrics:
+            metric_name = f"{metric.__class__}@{metric.top_k}"
+            results[metric_name]  = metric(preds=logits,
+                                           target=labels).item()
+        
+        return results 
+
     def train(self):
         train_dataloader = self.get_dataloader(
             dataset=self.train_dataset,
@@ -69,5 +124,7 @@ class MFPipeline:
                                                 negative_item_ids = batch[:, 2],
                                                 is_training = True,
                                                 )
-                
-                return model_output, loss #next(iter(train_dataloader))
+                self.handle_iteration(loss=loss)
+
+            if (epoch + 1) % self.config["eval_steps"]:
+                print(self.eval(train_graph=train_dataset, for_testing=False))

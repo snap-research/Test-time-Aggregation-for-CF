@@ -117,6 +117,13 @@ class BaseMatrixFactorization(ABC, torch.nn.Module):
         
         raise NotImplementedError("Must be implemented in child classes")
     
+    @abstractmethod
+    def get_all_embbedings(self, 
+                **kwargs,
+                ) -> torch.Tensor:
+        
+        raise NotImplementedError("Must be implemented in child classes")
+    
 class MatrixFactorization(BaseMatrixFactorization):
     """ Matrix Factorization Model
 
@@ -170,6 +177,8 @@ class MatrixFactorization(BaseMatrixFactorization):
         else:
             return model_output
     
+    def get_all_embbedings(self, **kwargs) -> torch.Tensor:
+        return self.embedding_table.weight
 
 class LightGCN(BaseMatrixFactorization):
     """ LightGCN Model
@@ -244,6 +253,10 @@ class LightGCN(BaseMatrixFactorization):
         
         return torch.stack(results, dim=1).mean(1)
     
+    def get_all_embbedings(self, 
+                           graph= dgl.DGLGraph,
+                           **kwargs) -> torch.Tensor:
+        return self.message_passing(graph=graph)
 
 class TAGCF(LightGCN):
     """ TAG-CF Model
@@ -291,18 +304,20 @@ class TAGCF(LightGCN):
                 negative_item_indices: Optional[torch.Tensor] = None,
                 ) -> TripletModelOutput:
         
-        total_embedding = self.message_passing(graph=graph)
-        user_embedding = total_embedding[user_indices]
-        positive_item_embedding = total_embedding[positive_item_indices]
-        negative_item_embedding = total_embedding[negative_item_indices] if negative_item_indices else None
-
-        model_output = TripletModelOutput(user_embedding = user_embedding, 
-                                           positive_item_embedding = positive_item_embedding, 
-                                           negative_item_embedding = negative_item_embedding)
-                                          
+        model_output = super().forward(graph=graph,
+                                       user_indices=user_indices,
+                                       positive_item_indices=positive_item_indices,
+                                       negative_item_indices=negative_item_indices,
+                                       is_training=False)
         return model_output
+    
+    @torch.no_grad()
+    def get_all_embbedings(self, 
+                           graph= dgl.DGLGraph,
+                           **kwargs) -> torch.Tensor:
+        return self.message_passing(graph=graph)
 
 class ModelClass(Enum):
     MF = MatrixFactorization
     LGCN = LightGCN
-    TAGC = TAGCF
+    TAGCF = TAGCF
