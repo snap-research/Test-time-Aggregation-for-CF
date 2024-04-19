@@ -2,6 +2,7 @@ import torch
 from abc import ABC, abstractmethod
 from sklearn.metrics import ndcg_score
 from enum import Enum 
+from typing import Tuple
 
 class EvalMetrics(ABC):
     """ Base class for evaluation metrics
@@ -24,7 +25,16 @@ class EvalMetrics(ABC):
                  ) -> float:
         raise NotImplementedError("Must be implemented in child classes")
     
-
+    @staticmethod
+    def excldue_empty_user(preds: torch.Tensor, 
+                            targets: torch.Tensor,
+                            ) -> Tuple[torch.Tensor, torch.Tensor]:
+    
+        mask = targets.sum(-1) != 0 
+        preds = preds[mask]
+        targets = targets[mask]
+        return preds, targets
+    
 class NDCG(EvalMetrics):
     """ NDCG metrics
 
@@ -43,15 +53,14 @@ class NDCG(EvalMetrics):
                  ) -> float:
         # preds: (batch size x number of candidates) logits of each prediction
         # targets: (batch size x number of candidates) boolean tensor indicating interaction
+        
+        preds, targets = self.excldue_empty_user(preds=preds,
+                                targets=targets)
 
         return ndcg_score(y_true=targets.cpu(),
                    y_score=preds.cpu(),
                    k=self.top_k,
                    )
-    
-    def reset(self) -> None:
-        return None 
-    
 
 class Recall(EvalMetrics):
     """ Recall metrics
@@ -72,6 +81,9 @@ class Recall(EvalMetrics):
                  ) -> float:
         # preds: (batch size x number of candidates) logits of each prediction
         # targets: (batch size x number of candidates) boolean tensor indicating interaction
+        
+        preds, targets = self.excldue_empty_user(preds=preds,
+                                targets=targets)
 
         batch_size = preds.shape[0]
         num_candidates =  preds.shape[1]
@@ -87,13 +99,10 @@ class Recall(EvalMetrics):
         # ]
         topk_target_mask = torch.arange(batch_size).unsqueeze(1).expand(-1, self.top_k)
         topk_target = targets[topk_target_mask, membership].float()
-
-        metrics = topk_target.sum(-1).mean().item()
+        demonimator = targets.sum(-1)
+        metrics = (topk_target.sum(-1)/targets.sum(-1)).mean().item()
         return metrics
     
-    def reset(self) -> None:
-        return None 
-
 
 class MetricClass(Enum):
     NDCG = NDCG

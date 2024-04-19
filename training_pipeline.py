@@ -1,4 +1,4 @@
-from src.utils import load_yaml, pre_process_graph
+from src.utils import load_yaml, pre_process_graph, init_logger
 from src.model import ModelClass
 from src.loss_function import LossFunction
 from src.data import DatasetClass, get_dataloader
@@ -9,7 +9,6 @@ from tqdm import tqdm
 import numpy as np
 from src.eval_metrics import MetricClass
 from typing import Dict
-
 
 class MFPipeline:
 
@@ -27,7 +26,7 @@ class MFPipeline:
             embedding_dim = self.config['embedding_dim'],
             loss_function = LossFunction[self.config['loss_function']].value(),
             num_layers = self.config['n_layers'],
-        )
+        ).to(self.device)
 
         self.optimizer = torch.optim.Adam(lr=self.config['lr'],
                                           weight_decay=self.config['weight_decay'],
@@ -42,6 +41,7 @@ class MFPipeline:
                              for metric in self.config['metrics'] 
                                 for k in self.config['top_k'] 
                                 ]
+        self.logger = init_logger()
 
     def load_config(self,
                     yaml_path: str
@@ -91,20 +91,22 @@ class MFPipeline:
         # masking positive interactions observed during the training
         logits = torch.mm(user_embeddings, item_embeddings.t())
         users, items = self.train_dataset.edges()
-        logits[users, items] = -np.inf
+        items = items - self.dataset.n_user
+        logits[users, items] = -9999
         labels = torch.zeros_like(logits)
         if for_testing:
             target_users, target_items = self.test_dataset.edges()
         else:
             target_users, target_items = self.valid_dataset.edges()
+        target_items = target_items - self.dataset.n_user
 
         labels[target_users, target_items] = 1
-        
+
         results = {}
         for metric in self.eval_metrics:
             metric_name = f"{metric.__class__}@{metric.top_k}"
             results[metric_name]  = metric(preds=logits,
-                                           target=labels).item()
+                                           targets=labels)
         
         return results 
 
@@ -116,6 +118,7 @@ class MFPipeline:
         train_dataset = self.train_dataset.to(self.device)
 
         for epoch in range(self.config['total_epochs']):
+            self.logger.info(f"Training on Epoch: {epoch}")
             for batch in train_dataloader:
                 batch = batch.to(self.device)
                 model_output, loss = self.model(graph = train_dataset,
@@ -126,5 +129,5 @@ class MFPipeline:
                                                 )
                 self.handle_iteration(loss=loss)
 
-            if (epoch + 1) % self.config["eval_steps"]:
-                print(self.eval(train_graph=train_dataset, for_testing=False))
+            if (epoch + 1) % self.config["eval_steps"] == 0:
+                self.logger.info(self.eval(train_graph=train_dataset, for_testing=False))

@@ -5,9 +5,9 @@ negative_edge_ratio: !!int 1
 total_epochs: !!int 300
 lr: !!float 5e-4
 weight_decay: !!float 1e-5
-num_workers: !!int 1
-# device_id: !!str cuda:0
-eval_steps: !!int 10
+num_workers: !!int 24
+device_id: !!str cuda:0
+eval_steps: !!int 3
 early_stopping_patience: !!int 3
 should_early_stop: !!bool true
 dataset: !!str ML1M
