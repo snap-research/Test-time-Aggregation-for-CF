@@ -51,7 +51,7 @@ class DirectAULoss(BaseLossFunction):
     """
 
     def __init__(self, 
-                 gamma) -> None:
+                 gamma=1.0) -> None:
         self.gamma = gamma
 
     def get_loss(self, 

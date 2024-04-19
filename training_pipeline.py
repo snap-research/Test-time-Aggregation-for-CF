@@ -9,6 +9,7 @@ from tqdm import tqdm
 import numpy as np
 from src.eval_metrics import MetricClass
 from typing import Dict
+import sys
 
 class MFPipeline:
 
@@ -72,9 +73,9 @@ class MFPipeline:
                          loss: torch.Tensor,
                          ) -> None:
         
+        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        self.optimizer.zero_grad()
 
 
     @ torch.no_grad()
@@ -104,7 +105,7 @@ class MFPipeline:
 
         results = {}
         for metric in self.eval_metrics:
-            metric_name = f"{metric.__class__}@{metric.top_k}"
+            metric_name = f"{metric.__class__.__name__}@{metric.top_k}"
             results[metric_name]  = metric(preds=logits,
                                            targets=labels)
         
@@ -115,19 +116,31 @@ class MFPipeline:
             dataset=self.train_dataset,
             )
         train_dataset = pre_process_graph(self.train_dataset)
-        train_dataset = self.train_dataset.to(self.device)
+        train_dataset = train_dataset.to(self.device)
 
         for epoch in range(self.config['total_epochs']):
             self.logger.info(f"Training on Epoch: {epoch}")
             for batch in train_dataloader:
                 batch = batch.to(self.device)
-                model_output, loss = self.model(graph = train_dataset,
-                                                user_ids = batch[:, 0],
-                                                positive_item_ids = batch[:, 1],
-                                                negative_item_ids = batch[:, 2],
-                                                is_training = True,
-                                                )
+                model_output, loss = self.model(
+                    graph = train_dataset,
+                    user_ids = batch[:, 0],
+                    positive_item_ids = batch[:, 1],
+                    negative_item_ids = batch[:, 2],
+                    is_training = True,
+                )
                 self.handle_iteration(loss=loss)
 
             if (epoch + 1) % self.config["eval_steps"] == 0:
-                self.logger.info(self.eval(train_graph=train_dataset, for_testing=False))
+                eval_metrics = self.eval(train_graph=train_dataset, for_testing=False)
+                self.logger.info(eval_metrics)
+                if self.early_stopper(
+                    current_score = eval_metrics[self.config["early_stopping_metric"]],
+                    model = self.model,
+                    logger = self.logger
+                    ):
+                    self.model.load_state_dict(self.early_stopper.best_state_dict)
+                    testing_metrics = self.eval(train_graph=train_dataset, for_testing=False)
+                    self.logger.info("Loading best checkpoint and doing testing")
+                    self.logger.info(testing_metrics)
+                    sys.exit(0)

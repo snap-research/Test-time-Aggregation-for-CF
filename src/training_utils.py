@@ -1,5 +1,5 @@
 import torch
-import logging
+import copy
 
 class EarlyStopper:
     """Early stopper class to stop training when the model is not improving
@@ -45,10 +45,11 @@ class EarlyStopper:
                     current_score
                 )
             )
-            self.best_state_dict = model.state_dict()
+            self.best_state_dict = copy.deepcopy(model.state_dict())
 
         # we should do early stopping if the counter is greater than the patience and early stop is enabled
         if self.counter > self.patience:
+            logger.info("Training Stopped. Early stopping activated. ")
             return True
         else:
             return False

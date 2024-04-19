@@ -87,8 +87,9 @@ class BaseMatrixFactorization(ABC, torch.nn.Module):
     
         super().__init__()
 
-        self.embedding_table = torch.nn.Embedding(number_of_users+number_of_items, 
-                                                  embedding_dim)
+        self.embedding_table = torch.nn.Embedding(
+            number_of_users+number_of_items, 
+            embedding_dim)
         self.number_of_users = number_of_users
         self.loss_function = loss_function
 
