@@ -1,6 +1,7 @@
 from training_pipeline import MFPipeline
 import argparse
 from src.constants import DEFAULT_GENERAL_YAML_PATH, DEFAULT_MODEL_YAML_PATH
+from src.utils import set_seed
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -17,7 +18,8 @@ if __name__ == "__main__":
         type=str,
         default=DEFAULT_MODEL_YAML_PATH,
     )
-
+    set_seed()
+    
     args = parser.parse_args()
     pipeline = MFPipeline(general_yaml_path=args.general_yaml_path,
                           model_yaml_path=args.model_yaml_path)
