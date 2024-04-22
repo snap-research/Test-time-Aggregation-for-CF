@@ -19,8 +19,11 @@ if __name__ == "__main__":
         default=DEFAULT_MODEL_YAML_PATH,
     )
     set_seed()
-    
+
     args = parser.parse_args()
     pipeline = MFPipeline(general_yaml_path=args.general_yaml_path,
                           model_yaml_path=args.model_yaml_path)
-    pipeline.train()
+    if pipeline.config["model_type"] == 'TAGCF':
+        pipeline.test()
+    else:
+        pipeline.train()

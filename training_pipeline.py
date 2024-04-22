@@ -28,6 +28,9 @@ class MFPipeline:
             embedding_dim = self.config['embedding_dim'],
             loss_function = LossFunction[self.config['loss_function']].value(),
             num_layers = self.config['n_layers'],
+            embedding_table_weight = self.config.get("embedding_table_weight", None),
+            m = self.config.get("m", None),
+            n = self.config.get("n", None),
         ).to(self.device)
 
         self.optimizer = torch.optim.Adam(lr=self.config['lr'],
@@ -157,3 +160,15 @@ class MFPipeline:
                     self.logger.info(testing_metrics)
                     
                     sys.exit(0)
+
+    def test(self):
+        train_dataset = pre_process_graph(self.train_dataset)
+        train_dataset = train_dataset.to(self.device)
+ 
+        eval_metrics = self.eval(train_graph=train_dataset, for_testing=False)
+        self.logger.info("Validation results")
+        self.logger.info(eval_metrics)
+
+        testing_metrics = self.eval(train_graph=train_dataset, for_testing=True)
+        self.logger.info("Testing results")
+        self.logger.info(testing_metrics)

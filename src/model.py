@@ -281,9 +281,10 @@ class TAGCF(LightGCN):
                  number_of_users: int, 
                  number_of_items: int, 
                  embedding_dim: int, 
-                 embedding_table_weight: torch.Tensor,
+                 embedding_table_weight: str,
                  m: float,
                  n: float,
+                 **kwargs
                  ) -> None:
         
         super().__init__(number_of_users = number_of_users, 
@@ -293,6 +294,10 @@ class TAGCF(LightGCN):
                          loss_function=None, # TAG-CF is a test-time augmentation framework, no loss required
                          )
         
+        embedding_table_weight = torch.load(
+            embedding_table_weight, 
+            map_location='cpu',
+            )['embedding_table.weight']
         self.embedding_table.weight = torch.nn.Parameter(embedding_table_weight)
         self.message_passing_layer.m = m
         self.message_passing_layer.n = n
