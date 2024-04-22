@@ -29,7 +29,7 @@ class MessagePassingLayer(torch.nn.Module):
         super().__init__()
         self.m = m
         self.n = n
-        self.aggregate_fn = fn.copy_src('h', 'm')
+        self.aggregate_fn = fn.copy_u('h', 'm')
 
     def forward(self, 
                 graph: dgl.DGLGraph,
@@ -217,16 +217,16 @@ class LightGCN(BaseMatrixFactorization):
 
     def forward(self, 
                 graph: dgl.DGLGraph,
-                user_indices: Optional[torch.Tensor] = None,
-                positive_item_indices: Optional[torch.Tensor] = None,
-                negative_item_indices: Optional[torch.Tensor] = None,
+                user_ids: Optional[torch.Tensor] = None,
+                positive_item_ids: Optional[torch.Tensor] = None,
+                negative_item_ids: Optional[torch.Tensor] = None,
                 is_training = False,
                 ) -> Union[TripletModelOutput, Tuple[TripletModelOutput, torch.Tensor]]:
         
         total_embedding = self.message_passing(graph=graph)
-        user_embedding = total_embedding[user_indices] if user_indices else None
-        positive_item_embedding = total_embedding[positive_item_indices] if positive_item_indices else None
-        negative_item_embedding = total_embedding[negative_item_indices] if negative_item_indices else None
+        user_embedding = total_embedding[user_ids] if user_ids != None else None
+        positive_item_embedding = total_embedding[positive_item_ids] if positive_item_ids != None else None
+        negative_item_embedding = total_embedding[negative_item_ids] if negative_item_ids != None else None
 
         model_output = TripletModelOutput(user_embedding = user_embedding, 
                                            positive_item_embedding = positive_item_embedding, 
@@ -252,7 +252,7 @@ class LightGCN(BaseMatrixFactorization):
             graph.ndata[DEFAULT_NODE_FEATURE_FIELD] = intermediate_results
             results.append(intermediate_results)
         
-        return torch.stack(results, dim=1).mean(1)
+        return torch.cat(results, dim=1).mean(1)
     
     def get_all_embbedings(self, 
                            graph= dgl.DGLGraph,

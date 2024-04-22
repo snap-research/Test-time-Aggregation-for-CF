@@ -1,0 +1,2 @@
+n_layers: !!int 3
+model_type: !!str LGCN

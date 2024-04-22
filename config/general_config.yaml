@@ -1,7 +1,5 @@
 batch_size: !!int 1024
 embedding_dim: !!int 64
-n_layers: !!int 2
-negative_edge_ratio: !!int 1
 total_epochs: !!int 300
 lr: !!float 1e-3
 weight_decay: !!float 1e-5
@@ -19,5 +17,3 @@ top_k:
     - !!int 10
     - !!int 20
 loss_function: !!str DAU
-model_type: !!str MF
-eval_batch_size: !!int 1024

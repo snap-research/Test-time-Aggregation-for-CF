@@ -1,2 +1,4 @@
 __pycache__/
 dataset/ml-1m
+*.ckpt
+model_ckpts
