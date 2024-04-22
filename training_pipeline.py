@@ -8,9 +8,19 @@ import torch
 from src.eval_metrics import MetricClass
 from typing import Dict
 import sys
+from torch.utils.data import Dataset, DataLoader
 
 class MFPipeline:
+    """
+    matrix factorization pipeline 
 
+    Parameters
+    ----------
+    general_yaml_path: str
+        the path to general yaml config file 
+    model_yaml_path: str
+        the path to model-specific yaml config file 
+    """
     def __init__(
         self,
         general_yaml_path: str,
@@ -55,6 +65,17 @@ class MFPipeline:
                     general_yaml_path: str,
                     model_yaml_path: str,
                     ) -> None:
+        """
+        load general configs and model-specific configs given their yaml files 
+
+        Parameters
+        ----------
+        general_yaml_path: str
+            the path to general yaml config file 
+        model_yaml_path: str
+            the path to model-specific yaml config file 
+        """
+
         self.config = load_yaml(path=general_yaml_path)
         self.device = self.config.get('device_id', 'cpu')
         self.config['n_layers'] = self.config.get('n_layers', 0)
@@ -63,15 +84,30 @@ class MFPipeline:
             )
         
     def load_dataset(self,
-                     dataset_name) -> None:
+                     dataset_name: str) -> None:
+        """
+        get the dataset object given the data set name 
 
+        Parameters
+        ----------
+        dataset_name: str
+            the string name of the dataset
+        """
         self.dataset = DatasetClass[dataset_name].value()
         self.train_dataset = self.dataset.get_train()
         self.valid_dataset = self.dataset.get_valid()
         self.test_dataset = self.dataset.get_test()
 
     def get_dataloader(self, 
-                       dataset: dgl.DGLGraph):
+                       dataset: dgl.DGLGraph) -> DataLoader:
+        """
+        get the dataloader given the graph
+
+        Parameters
+        ----------
+        dataset: dgl.DGLGraph
+            the dgl graph object that the dataloader gets data from
+        """
 
         return get_dataloader(graph = dataset,
                               batch_size = self.config["batch_size"],
@@ -84,20 +120,41 @@ class MFPipeline:
     def handle_iteration(self, 
                          loss: torch.Tensor,
                          ) -> None:
-        
+        """
+        conduct backpropagatiopn given the loss
+
+        Parameters
+        ----------
+        loss: torch.Tensor
+            the loss of the model
+        """
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-
+    
     @ torch.no_grad()
     def eval(self, 
              train_graph: dgl.DGLGraph,
+             use_mp: bool = False,
              for_testing: bool = False,
              ) -> Dict[str, float]:
-        
+        """
+        conducting evalution over either testing or validation set
+
+        Parameters
+        ----------
+        train_graph: dgl.DGLGraph
+            the dgl graph object to conduct message passing on 
+        use_mp: bool
+            only works for TAGCF. it determins if we should use message passing for test-time aggregation
+        for_testing: bool
+            if we conduct evaluation on the testing set. (False for validation set)
+        """
         # acquiring all embeddings for users and items 
-        all_embeddings = self.model.get_all_embbedings(graph=train_graph)
+        all_embeddings = self.model.get_all_embbedings(graph=train_graph, 
+                                                       use_mp=use_mp)
+        
         user_embeddings = all_embeddings[:self.dataset.n_user]
         item_embeddings = all_embeddings[self.dataset.n_user:]
 
@@ -126,6 +183,9 @@ class MFPipeline:
         return results 
 
     def train(self):
+        """
+        the training logic for all matrix factorization models
+        """
         train_dataloader = self.get_dataloader(
             dataset=self.train_dataset,
             )
@@ -162,13 +222,25 @@ class MFPipeline:
                     sys.exit(0)
 
     def test(self):
+        """
+        TAG-CF specific function. Comparing the perforamnce before and after test-time aggregation 
+        """
         train_dataset = pre_process_graph(self.train_dataset)
         train_dataset = train_dataset.to(self.device)
- 
-        eval_metrics = self.eval(train_graph=train_dataset, for_testing=False)
+        self.logger.info("-----Performance without Test-time Aggregation-----")
+        eval_metrics = self.eval(train_graph=train_dataset, for_testing=False, use_mp=False)
         self.logger.info("Validation results")
         self.logger.info(eval_metrics)
 
-        testing_metrics = self.eval(train_graph=train_dataset, for_testing=True)
+        testing_metrics = self.eval(train_graph=train_dataset, for_testing=True, use_mp=False)
+        self.logger.info("Testing results")
+        self.logger.info(testing_metrics)
+
+        self.logger.info("-----Performance after Test-time Aggregation-----")
+        eval_metrics = self.eval(train_graph=train_dataset, for_testing=False, use_mp=True)
+        self.logger.info("Validation results")
+        self.logger.info(eval_metrics)
+
+        testing_metrics = self.eval(train_graph=train_dataset, for_testing=True, use_mp=True)
         self.logger.info("Testing results")
         self.logger.info(testing_metrics)

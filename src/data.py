@@ -107,7 +107,7 @@ class ML1MDataset(BaseDataset):
         assert (train_ratio + valid_ratio + test_ratio) == 1, \
             "You should consider using the full dataset."
         
-        df = pd.read_csv(path, sep = '::', header=None, encoding = "ISO-8859-1")
+        df = pd.read_csv(path, sep = '::', header=None, encoding="ISO-8859-1", engine='python')
 
         self.n_user = max(df.values[:, 0]) + 1
         self.n_item = max(df.values[:, 1]) + 1

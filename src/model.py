@@ -281,6 +281,7 @@ class TAGCF(LightGCN):
                  number_of_users: int, 
                  number_of_items: int, 
                  embedding_dim: int, 
+                 num_layers: int,
                  embedding_table_weight: str,
                  m: float,
                  n: float,
@@ -290,10 +291,10 @@ class TAGCF(LightGCN):
         super().__init__(number_of_users = number_of_users, 
                          number_of_items = number_of_items, 
                          embedding_dim = embedding_dim,
-                         num_layers = 1,
+                         num_layers = num_layers,
                          loss_function=None, # TAG-CF is a test-time augmentation framework, no loss required
                          )
-        
+
         embedding_table_weight = torch.load(
             embedding_table_weight, 
             map_location='cpu',
@@ -319,9 +320,16 @@ class TAGCF(LightGCN):
     
     @torch.no_grad()
     def get_all_embbedings(self, 
-                           graph= dgl.DGLGraph,
+                           graph: dgl.DGLGraph,
+                           use_mp: bool,
                            **kwargs) -> torch.Tensor:
-        return self.message_passing(graph=graph)
+        
+        if use_mp:
+            return self.message_passing(graph=graph)
+        else:
+            return self.embedding_table.weight
+
+
 
 class ModelClass(Enum):
     MF = MatrixFactorization
