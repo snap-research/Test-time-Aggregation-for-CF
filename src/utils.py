@@ -1,25 +1,28 @@
-import yaml
-from typing import Dict, Any
-import dgl
 import logging
-import sys
-import numpy as np
+import os
 import random
-import torch 
-import os 
+import sys
+from typing import Any, Dict
+
+import dgl
+import numpy as np
+import torch
+import yaml
+
 
 def load_yaml(path: str) -> Dict[str, Any]:
     with open(path, "r") as file:
         return yaml.safe_load(file)
-    
 
-# preprocess the dgl graph, adding reverse edges and self loops 
+
+# preprocess the dgl graph, adding reverse edges and self loops
 def pre_process_graph(graph: dgl.DGLGraph) -> dgl.DGLGraph:
     graph = dgl.add_reverse_edges(graph)
     graph = dgl.add_self_loop(graph)
-    return graph 
+    return graph
 
-# initialize loggers 
+
+# initialize loggers
 def init_logger() -> logging.Logger:
 
     logger = logging.getLogger(__name__)
@@ -33,8 +36,9 @@ def init_logger() -> logging.Logger:
     )
     return logger
 
+
 # maunal enforcing random seeds for reproducibility
-def set_seed(seed: int = 0) -> None:
+def set_seed(seed: int = 41) -> None:
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)

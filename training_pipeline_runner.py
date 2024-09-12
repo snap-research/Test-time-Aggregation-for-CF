@@ -1,7 +1,8 @@
-from training_pipeline import MFPipeline
 import argparse
+
 from src.constants import DEFAULT_GENERAL_YAML_PATH, DEFAULT_MODEL_YAML_PATH
 from src.utils import set_seed
+from training_pipeline import MFPipeline
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -21,9 +22,10 @@ if __name__ == "__main__":
     set_seed()
 
     args = parser.parse_args()
-    pipeline = MFPipeline(general_yaml_path=args.general_yaml_path,
-                          model_yaml_path=args.model_yaml_path)
-    if pipeline.config["model_type"] == 'TAGCF':
-        pipeline.test()
+    pipeline = MFPipeline(
+        general_yaml_path=args.general_yaml_path, model_yaml_path=args.model_yaml_path
+    )
+    if pipeline.config["model_type"] == "TAGCF":
+        pipeline.test_time_aggregation()
     else:
         pipeline.train()

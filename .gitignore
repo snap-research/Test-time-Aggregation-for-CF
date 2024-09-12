@@ -1,4 +1,5 @@
 __pycache__/
-dataset/ml-1m
+dataset/**/
 *.ckpt
 model_ckpts
+.DS_Store

@@ -1,0 +1,3 @@
+n_layers: !!int 1
+model_type: !!str TAGCF
+embedding_table_weight: !!str model_ckpts/GOWALLA_MF_DAU.ckpt

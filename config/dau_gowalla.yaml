@@ -1,0 +1,19 @@
+batch_size: !!int 1024
+embedding_dim: !!int 64
+total_epochs: !!int 300
+lr: !!float 1e-3
+weight_decay: !!float 1e-5
+num_workers: !!int 24
+device_id: !!str cuda:0
+eval_steps: !!int 3
+early_stopping_patience: !!int 3
+should_early_stop: !!bool true
+dataset: !!str GOWALLA
+early_stopping_metric: !!str RetrievalNormalizedDCG@10
+metrics:
+    - !!str NDCG
+    - !!str RECALL
+top_k:
+    - !!int 10
+    # - !!int 20
+loss_function: !!str DAU
