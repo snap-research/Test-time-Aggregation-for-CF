@@ -100,6 +100,8 @@ class BaseMatrixFactorization(ABC, torch.nn.Module):
         self.number_of_users = number_of_users
         self.loss_function = loss_function
 
+        self.embedding_table.weight.data.uniform_(-0.05, 0.05)
+
     def get_user_embedding(self, user_ids: torch.Tensor) -> torch.Tensor:
 
         return self.embedding_table(user_ids)
@@ -156,8 +158,6 @@ class MatrixFactorization(BaseMatrixFactorization):
             embedding_dim=embedding_dim,
             loss_function=loss_function,
         )
-
-        self.embedding_table.weight.data.uniform_(-0.05, 0.05)
 
     def forward(
         self,

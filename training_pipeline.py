@@ -3,7 +3,7 @@ from typing import Dict
 
 import dgl
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 from src.constants import TAGCF_SEARCH_SPACE
 from src.data import DatasetClass, get_dataloader

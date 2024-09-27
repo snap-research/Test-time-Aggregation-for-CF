@@ -1,8 +1,5 @@
-import random
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Tuple
+from typing import NamedTuple, Optional
 
 import dgl
 import pandas as pd
@@ -18,18 +15,10 @@ from src.constants import (
 )
 
 
-@dataclass
-class TripletModelOutput:
-    def __init__(
-        self,
-        user_embedding: Optional[torch.Tensor] = None,
-        positive_item_embedding: Optional[torch.Tensor] = None,
-        negative_item_embedding: Optional[torch.Tensor] = None,
-        **kwargs,
-    ):
-        self.user_embedding = user_embedding
-        self.positive_item_embedding = positive_item_embedding
-        self.negative_item_embedding = negative_item_embedding
+class TripletModelOutput(NamedTuple):
+    user_embedding: Optional[torch.Tensor] = None
+    positive_item_embedding: Optional[torch.Tensor] = None
+    negative_item_embedding: Optional[torch.Tensor] = None
 
 
 class CFDataset(Dataset):
@@ -81,7 +70,7 @@ def get_dataloader(
         num_users=num_users,
         num_items=num_items,
     )
-    # breakpoint()
+
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
@@ -95,25 +84,7 @@ def get_dataloader(
     return dataloader
 
 
-class BaseDataset(ABC):
-    @abstractmethod
-    def __init__(self) -> None:
-        pass
-
-    @abstractmethod
-    def get_train(self) -> dgl.DGLGraph:
-        pass
-
-    @abstractmethod
-    def get_valid(self) -> dgl.DGLGraph:
-        pass
-
-    @abstractmethod
-    def get_test(self) -> dgl.DGLGraph:
-        pass
-
-
-class ML1MDataset(BaseDataset):
+class BaseDataset:
     def __init__(
         self,
         path: str = ML_1M_PATH,
@@ -176,19 +147,24 @@ class ML1MDataset(BaseDataset):
         return graph
 
 
-class AmazonBookDataset(ML1MDataset):
+class AmazonBookDataset(BaseDataset):
     def __init__(self) -> None:
         super().__init__(path=AMAZON_BOOK_PATH)
 
 
-class GowallaDataset(ML1MDataset):
+class GowallaDataset(BaseDataset):
     def __init__(self) -> None:
         super().__init__(path=GOWALLA_PATH)
 
 
-class YelpDataset(ML1MDataset):
+class YelpDataset(BaseDataset):
     def __init__(self) -> None:
         super().__init__(path=YELP_PATH)
+
+
+class ML1MDataset(BaseDataset):
+    def __init__(self) -> None:
+        super().__init__(path=ML_1M_PATH)
 
 
 class DatasetClass(Enum):

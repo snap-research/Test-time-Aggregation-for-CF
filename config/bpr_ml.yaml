@@ -1,12 +1,11 @@
 batch_size: !!int 1024
 embedding_dim: !!int 64
 total_epochs: !!int 300
-lr: !!float 1e-3
-weight_decay: !!float 1e-5
-num_workers: !!int 36
-device_id: !!str cuda:0
+lr: !!float 1e-4
+weight_decay: !!float 5e-6
+device_id: !!str cuda
 eval_steps: !!int 3
-early_stopping_patience: !!int 3
+early_stopping_patience: !!int 10
 should_early_stop: !!bool true
 dataset: !!str ML1M
 early_stopping_metric: !!str RetrievalRecall@20
@@ -17,3 +16,4 @@ top_k:
     - !!int 10
     - !!int 20
 loss_function: !!str BPR
+num_workers: !!int 12

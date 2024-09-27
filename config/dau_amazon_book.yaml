@@ -1,15 +1,15 @@
 batch_size: !!int 1024
 embedding_dim: !!int 64
 total_epochs: !!int 300
-lr: !!float 1e-3
-weight_decay: !!float 1e-5
-num_workers: !!int 24
-device_id: !!str cuda:0
+lr: !!float 1e-4
+weight_decay: !!float 5e-6
+num_workers: !!int 12
+device_id: !!str cuda
 eval_steps: !!int 3
 early_stopping_patience: !!int 3
 should_early_stop: !!bool true
 dataset: !!str BOOK
-early_stopping_metric: !!str RetrievalNormalizedDCG@10
+early_stopping_metric: !!str RetrievalRecall@20
 metrics:
     - !!str NDCG
     - !!str RECALL
