@@ -1,0 +1,5 @@
+__pycache__/
+dataset/**/
+*.ckpt
+model_ckpts
+.DS_Store

@@ -1,0 +1,6 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+dgl=2.1.0.cu118=py310_0
+pytorch=2.1.2=py3.10_cuda11.8_cudnn8.7.0_0
+torchmetrics=1.4.0
